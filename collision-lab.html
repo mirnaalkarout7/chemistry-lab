@@ -1,0 +1,295 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0}img{max-width:100%}</style></head><body>
+<title>Collision Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: a lab bench. Mission tabs on top, the reaction chamber on the left, the lab notebook on the right. */
+:root{
+  --bg:#f3f8f8; --panel:#ffffff; --ink:#17323a; --muted:#587078; --line:#cfe0e2;
+  --accent:#178a90; --accent-ink:#ffffff; --accent-soft:#dff2f3;
+  --chamber:#0f2a33; --chamber-ink:#d9eef0; --wall:#6fb7bd;
+  --good:#1f8f55; --bad:#c0504d; --gold:#f2b632;
+  --atomC:#5b6468; --atomO:#e0474c; --atomN:#3b82c4;
+  --display:"Baloo 2","Trebuchet MS",sans-serif; --body:"Atkinson Hyperlegible",Verdana,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1c21; --panel:#13282f; --ink:#e2f0f1; --muted:#9bb5ba; --line:#28454d;
+  --accent:#4cc3c9; --accent-ink:#06262a; --accent-soft:#17383f;
+  --chamber:#081419; --chamber-ink:#d9eef0; --wall:#4cc3c9;
+  --good:#5fd08f; --bad:#f08a86; --gold:#f2b632;
+  --atomC:#8b979c; --atomO:#e8595e; --atomN:#5a9ede; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1c21; --panel:#13282f; --ink:#e2f0f1; --muted:#9bb5ba; --line:#28454d;
+  --accent:#4cc3c9; --accent-ink:#06262a; --accent-soft:#17383f;
+  --chamber:#081419; --chamber-ink:#d9eef0; --wall:#4cc3c9;
+  --good:#5fd08f; --bad:#f08a86; --gold:#f2b632;
+  --atomC:#8b979c; --atomO:#e8595e; --atomN:#5a9ede; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:18px 40px;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 24px;justify-content:space-between}
+h1{font-family:var(--display);font-size:2.2rem;line-height:1;margin:0;color:var(--accent)}
+.eq{font-family:var(--display);font-size:1.25rem;margin:0}
+.key{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{-webkit-appearance:none;appearance:none;font-family:var(--display);font-size:1.02rem;padding:6px 14px;border-radius:999px;border:2px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.bench{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:820px){.bench{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+canvas{width:100%;height:auto;display:block;background:var(--chamber);border-radius:14px}
+.controls{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center}
+.ctl{display:flex;flex-direction:column;gap:2px;min-width:150px;flex:1}
+.ctl label{font-weight:700;font-size:.9rem}
+.ctl input[type=range]{width:100%;-webkit-appearance:none;appearance:none;height:28px;background:transparent;margin:0;cursor:pointer}
+.ctl input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:var(--line)}
+.ctl input[type=range]::-moz-range-track{height:8px;border-radius:4px;background:var(--line)}
+.ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--accent);margin-top:-7px}
+.ctl input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--accent)}
+.ctl input[type=range]:disabled{cursor:not-allowed;opacity:.45}
+.ctl small{color:var(--muted)}
+.btn{-webkit-appearance:none;appearance:none;font-family:var(--display);font-size:1.05rem;padding:7px 18px;border-radius:10px;border:none;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:var(--accent-soft);color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.stat b{display:block;font-family:var(--display);font-size:1.6rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+.note{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.note h2{font-family:var(--display);font-size:1.35rem;margin:0 0 4px;color:var(--accent);text-wrap:balance}
+.note ol{margin:6px 0 0;padding-left:20px}
+.note li{margin-bottom:6px}
+.rule{background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.rule p{margin:8px 0 0;font-weight:700;font-size:1.05rem}
+.meter{flex:2;min-width:200px}
+.bar{position:relative;height:18px;border-radius:9px;background:var(--accent-soft);overflow:visible}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:9px;background:var(--gold);width:0}
+.bar u{position:absolute;top:-5px;bottom:-5px;width:3px;background:var(--bad)}
+.logwrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+td.ok{color:var(--good);font-weight:700} td.no{color:var(--bad);font-weight:700}
+.msg{font-weight:700;min-height:1.5em}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Collision Lab</h1>
+      <p class="eq">CO + NO<sub>2</sub> &rarr; CO<sub>2</sub> + NO</p>
+    </div>
+    <div class="key" aria-label="Key">
+      <span><i class="dot" style="background:var(--atomC)"></i>carbon (C)</span>
+      <span><i class="dot" style="background:var(--atomO)"></i>oxygen (O)</span>
+      <span><i class="dot" style="background:var(--atomN)"></i>nitrogen (N)</span>
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist" id="tabs">
+    <button role="tab" id="tab1" data-m="1">Mission 1</button>
+    <button role="tab" id="tab2" data-m="2">Mission 2</button>
+    <button role="tab" id="tab3" data-m="3">Mission 3</button>
+    <button role="tab" id="tab4" data-m="4">All together</button>
+  </div>
+
+  <div class="bench">
+    <div class="col">
+      <canvas id="cv" width="720" height="380" aria-label="Reaction chamber showing molecules"></canvas>
+
+      <div class="controls" id="boxControls">
+        <button class="btn" id="barrierBtn">Remove the barrier</button>
+        <div class="ctl" id="tempCtl"><label for="temp">Temperature</label><input type="range" id="temp" min="1" max="10" value="6"><small id="tempTxt">medium</small></div>
+        <div class="ctl" id="eaCtl"><label for="ea">Energy needed to react</label><input type="range" id="ea" min="10" max="70" value="30"><small id="eaTxt">medium barrier</small></div>
+        <button class="btn ghost" id="pauseBtn">Pause</button>
+        <button class="btn ghost" id="resetBtn">Start again</button>
+      </div>
+
+      <div class="controls" id="launchControls" hidden>
+        <div class="ctl"><label for="spd">Speed of CO</label><input type="range" id="spd" min="1" max="10" value="3" autocomplete="off"><small id="spdTxt">3</small></div>
+        <div class="ctl"><label for="coA">Turn the CO molecule</label><input type="range" id="coA" min="0" max="345" step="15" value="0" autocomplete="off"></div>
+        <div class="ctl"><label for="noA">Turn the NO<sub>2</sub> molecule</label><input type="range" id="noA" min="0" max="345" step="15" value="120" autocomplete="off"></div>
+        <button class="btn" id="fireBtn">Launch</button>
+        <div class="ctl meter"><label>Energy of the last collision</label><div class="bar"><i id="eFill"></i><u id="eMark"></u></div><small>The red line is the energy needed to react.</small></div>
+      </div>
+
+      <p class="msg" id="msg" aria-live="polite"></p>
+
+      <div class="stats" id="stats">
+        <div class="stat"><b id="sCol">0</b><span>CO and NO<sub>2</sub> collisions</span></div>
+        <div class="stat"><b id="sOk">0</b><span>collisions that reacted</span></div>
+        <div class="stat"><b id="sProd">0</b><span>CO<sub>2</sub> molecules made</span></div>
+        <div class="stat" id="stE" hidden><b id="sFE">0</b><span>bounced: too little energy</span></div>
+        <div class="stat" id="stO" hidden><b id="sFO">0</b><span>bounced: wrong atoms touched</span></div>
+      </div>
+
+      <div class="logwrap" id="logwrap" hidden>
+        <table><thead><tr><th>Try</th><th>Speed</th><th>Atoms that touched</th><th>Result</th></tr></thead><tbody id="log"></tbody></table>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="note"><h2 id="mTitle"></h2><div id="mBody"></div></div>
+      <div class="rule"><button class="btn" id="ruleBtn">Check our rule</button><p id="ruleTxt" hidden></p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const W=720,H=380,cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;
+const $=id=>document.getElementById(id);
+let col={};
+function readColors(){const s=getComputedStyle(document.documentElement);['chamber','chamber-ink','wall','gold','atomC','atomO','atomN','bad','good'].forEach(k=>col[k]=s.getPropertyValue('--'+k).trim());}
+readColors();setInterval(readColors,1500);
+
+/* ---------- drawing ---------- */
+const RA={C:11,O:11,N:12};
+function atom(x,y,k){ctx.beginPath();ctx.arc(x,y,RA[k],0,7);ctx.fillStyle=col['atom'+k];ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,255,255,.75)';ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 11px Verdana,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(k,x,y+.5);}
+/* atoms of a molecule in world coordinates: [kind,x,y] */
+function atomsOf(m){const c=Math.cos(m.a),s=Math.sin(m.a),r=[];
+  if(m.t==='CO'){r.push(['O',m.x-9*c,m.y-9*s],['C',m.x+9*c,m.y+9*s]);}
+  else if(m.t==='NO2'){const d=Math.PI/3;r.push(['O',m.x+17*Math.cos(m.a+d),m.y+17*Math.sin(m.a+d)],['O',m.x+17*Math.cos(m.a-d),m.y+17*Math.sin(m.a-d)],['N',m.x,m.y]);}
+  else if(m.t==='CO2'){r.push(['O',m.x-18*c,m.y-18*s],['O',m.x+18*c,m.y+18*s],['C',m.x,m.y]);}
+  else {r.push(['O',m.x-9*c,m.y-9*s],['N',m.x+9*c,m.y+9*s]);}
+  return r;}
+function drawMol(m){atomsOf(m).forEach(a=>atom(a[1],a[2],a[0]));}
+const RM={CO:20,NO2:26,CO2:27,NO:20};
+function flash(f){const p=f.life/f.max;ctx.save();ctx.globalAlpha=p;
+  if(f.ok){ctx.fillStyle=col.gold;ctx.beginPath();for(let i=0;i<16;i++){const r=(i%2?10:30)*(1.5-p*.5),a=i*Math.PI/8;ctx.lineTo(f.x+r*Math.cos(a),f.y+r*Math.sin(a));}ctx.closePath();ctx.fill();}
+  else{ctx.strokeStyle=col['chamber-ink'];ctx.lineWidth=2;ctx.beginPath();ctx.arc(f.x,f.y,8+(1-p)*14,0,7);ctx.stroke();}
+  ctx.restore();}
+function label(t,x,y,size){ctx.fillStyle=col['chamber-ink'];ctx.font='bold '+(size||12)+'px Verdana,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,x,y);}
+
+/* nearest pair of atoms between a CO and an NO2 */
+function nearest(co,no2){let best=null;atomsOf(co).forEach(a=>atomsOf(no2).forEach(b=>{const d=Math.hypot(a[1]-b[1],a[2]-b[2])-RA[a[0]]-RA[b[0]];if(!best||d<best.d)best={d,a:a[0],b:b[0],x:(a[1]+b[1])/2,y:(a[2]+b[2])/2};}));return best;}
+
+/* ---------- state ---------- */
+let mission=1,mode='box',paused=false,mols=[],flashes=[],barrier=true,T=6,Ea=30;
+let st={col:0,ok:0,fe:0,fo:0};
+const N=10;
+function speedFor(t){return 0.55+0.36*t;}
+function resetBox(){mols=[];flashes=[];st={col:0,ok:0,fe:0,fo:0};
+  for(let i=0;i<N*2;i++){const left=i<N,t=left?'CO':'NO2',r=RM[t];
+    let x,y,ok=false,tries=0;
+    while(!ok&&tries++<300){x=(left?r+6:W/2+r+10)+Math.random()*(W/2-2*r-16);y=r+6+Math.random()*(H-2*r-12);ok=mols.every(m=>Math.hypot(m.x-x,m.y-y)>m.r+r+4);}
+    const a=Math.random()*6.283,v=speedFor(T)*(0.55+Math.random()*0.9);
+    mols.push({t,x,y,r,vx:v*Math.cos(a),vy:v*Math.sin(a),a:Math.random()*6.283,w:(Math.random()-.5)*0.06});}
+  showStats();}
+function showStats(){$('sCol').textContent=st.col;$('sOk').textContent=st.ok;$('sProd').textContent=mols.filter(m=>m.t==='CO2').length;$('sFE').textContent=st.fe;$('sFO').textContent=st.fo;}
+
+function stepBox(){
+  const bx=W/2;
+  for(const m of mols){m.x+=m.vx;m.y+=m.vy;m.a+=m.w;
+    if(m.x<m.r){m.x=m.r;m.vx=Math.abs(m.vx);} if(m.x>W-m.r){m.x=W-m.r;m.vx=-Math.abs(m.vx);}
+    if(m.y<m.r){m.y=m.r;m.vy=Math.abs(m.vy);} if(m.y>H-m.r){m.y=H-m.r;m.vy=-Math.abs(m.vy);}
+    if(barrier){ if(m.side===undefined)m.side=m.x<bx?-1:1;
+      if(m.side<0&&m.x>bx-4-m.r){m.x=bx-4-m.r;m.vx=-Math.abs(m.vx);} if(m.side>0&&m.x<bx+4+m.r){m.x=bx+4+m.r;m.vx=Math.abs(m.vx);} }
+  }
+  for(let i=0;i<mols.length;i++)for(let j=i+1;j<mols.length;j++){
+    const a=mols[i],b=mols[j],dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||1,min=a.r+b.r-6;
+    if(d>=min)continue;
+    const nx=dx/d,ny=dy/d,rv=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;
+    const push=(min-d)/2;a.x-=nx*push;a.y-=ny*push;b.x+=nx*push;b.y+=ny*push;
+    if(rv>=0)continue;
+    const pair=(a.t==='CO'&&b.t==='NO2')||(a.t==='NO2'&&b.t==='CO');
+    if(pair){const co=a.t==='CO'?a:b,no2=a.t==='CO'?b:a,E=Math.min(100,rv*rv*0.9),n=nearest(co,no2);
+      st.col++;const okO=n.a==='C'&&n.b==='O',okE=E>=Ea;
+      if(okO&&okE){st.ok++;co.t='CO2';co.r=RM.CO2;no2.t='NO';no2.r=RM.NO;flashes.push({x:n.x,y:n.y,ok:true,life:40,max:40});}
+      else{if(!okE)st.fe++;else st.fo++;flashes.push({x:n.x,y:n.y,ok:false,life:16,max:16});}
+      showStats();}
+    a.vx+=rv*nx;a.vy+=rv*ny;b.vx-=rv*nx;b.vy-=rv*ny;
+  }
+}
+function drawBox(){
+  if(barrier){ctx.fillStyle=col.wall;ctx.fillRect(W/2-4,0,8,H);}
+  mols.forEach(drawMol);
+  flashes.forEach(flash);flashes=flashes.filter(f=>--f.life>0);
+}
+
+/* ---------- launcher ---------- */
+const LEa=45,SC=1.6,HL=H/SC;let L={phase:'idle',t:0,co:null,no2:null,tries:0,res:null};
+function resetLaunch(){if(mission===2){$('coA').value=0;$('noA').value=120;}if(mission===3){$('spd').value=9;}L.phase='idle';L.co={t:'CO',x:70,y:HL/2,a:+$('coA').value*Math.PI/180,vx:0};L.no2={t:'NO2',x:315,y:HL/2,a:+$('noA').value*Math.PI/180,vx:0};}
+function fire(){if(L.phase!=='idle'){resetLaunch();}
+  const s=mission===3?9:+$('spd').value;L.speed=s;L.co.vx=1.2+s*0.5;L.phase='fly';$('fireBtn').disabled=true;$('msg').textContent='';}
+function stepLaunch(){
+  if(L.phase==='fly'){L.co.x+=L.co.vx;const n=nearest(L.co,L.no2);
+    if(n.d<=0){const E=L.speed*L.speed,okO=n.a==='C'&&n.b==='O',okE=E>=LEa;L.res={n,E,ok:okO&&okE};
+      $('eFill').style.width=E+'%';
+      flashes.push({x:n.x,y:n.y,ok:L.res.ok,life:L.res.ok?50:18,max:L.res.ok?50:18});
+      if(L.res.ok){L.phase='complex';L.t=60;}else{L.phase='rebound';L.t=60;L.co.vx=-Math.min(2.6,L.co.vx*0.8);L.no2.vx=0.5;}
+    }}
+  else if(L.phase==='complex'){if(--L.t<=0){L.phase='products';L.t=60;L.co.t='CO2';L.co.vx=-1.5;L.no2.t='NO';L.no2.vx=1.4;}}
+  else if(L.phase==='rebound'||L.phase==='products'){L.co.x+=L.co.vx;L.no2.x+=L.no2.vx;L.co.a+=L.phase==='rebound'?-0.03:0.02;L.no2.a+=0.02;
+    if(--L.t<=0){finishLaunch();}}
+}
+function finishLaunch(){L.tries++;const r=L.res,tr=document.createElement('tr');
+  const cells=[L.tries,L.speed,r.n.a+' of CO touched '+r.n.b+' of NO₂',r.ok?'Reaction!':'Bounced apart'];
+  cells.forEach((c,i)=>{const td=document.createElement('td');td.textContent=c;if(i===3)td.className=r.ok?'ok':'no';tr.appendChild(td);});
+  $('log').prepend(tr);
+  $('msg').textContent=r.ok?'Reaction! CO₂ and NO formed.':'No reaction. The molecules bounced apart.';
+  L.phase='done';$('fireBtn').disabled=false;$('fireBtn').textContent='Launch again';}
+function drawLaunch(){ctx.save();ctx.scale(SC,SC);const H=HL;
+  if(L.phase==='complex'){ctx.save();ctx.shadowColor=col.gold;ctx.shadowBlur=24;drawMol(L.co);drawMol(L.no2);ctx.restore();
+    ctx.strokeStyle=col.gold;ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.strokeRect((L.co.x+L.no2.x)/2-70,H/2-48,140,96);ctx.setLineDash([]);
+    label('bonds breaking and forming',(L.co.x+L.no2.x)/2,H/2-64,11);}
+  else{drawMol(L.co);drawMol(L.no2);}
+  if(L.phase==='idle'){label('CO',L.co.x,H/2+44);label('NO₂',L.no2.x,H/2+52);
+    ctx.strokeStyle=col['chamber-ink'];ctx.lineWidth=2;ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(L.co.x+34,H/2);ctx.lineTo(L.no2.x-44,H/2);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle=col['chamber-ink'];ctx.beginPath();ctx.moveTo(L.no2.x-44,H/2);ctx.lineTo(L.no2.x-56,H/2-7);ctx.lineTo(L.no2.x-56,H/2+7);ctx.fill();}
+  if(L.phase==='products'||(L.phase==='done'&&L.res.ok)){label('CO₂',L.co.x,H/2+48);label('NO',L.no2.x,H/2+44);}
+  flashes.forEach(flash);flashes=flashes.filter(f=>--f.life>0);ctx.restore();
+}
+
+/* ---------- loop ---------- */
+function frame(){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  if(mode==='box'){if(!paused)stepBox();drawBox();}else{stepLaunch();drawLaunch();}
+  requestAnimationFrame(frame);}
+
+/* ---------- missions ---------- */
+const M={
+ 1:{title:'Mission 1: Keep them apart',body:'<ol><li>CO molecules are on the left. NO<sub>2</sub> molecules are on the right. A barrier keeps them apart.</li><li>Watch for one minute. How many CO<sub>2</sub> molecules form?</li><li>Remove the barrier. What do you see now?</li><li>Write a rule: what must particles do before they can react?</li></ol>',
+    rule:'Rule 1: Reacting particles must collide.'},
+ 2:{title:'Mission 2: Slow or fast?',body:'<ol><li>The molecules are already turned the right way: the C atom of CO points at an O atom of NO<sub>2</sub>.</li><li>Launch CO at speed 1, then 3, 5, 7 and 9. Record what happens each time.</li><li>At which speeds does a reaction happen?</li><li>Write a rule: what must a collision have for a reaction to happen?</li></ol>',
+    rule:'Rule 2: Particles must collide with enough energy. The minimum energy needed is called the activation energy.'},
+ 3:{title:'Mission 3: Which way round?',body:'<ol><li>The speed is fixed at 9, so every collision has plenty of energy.</li><li>Turn the CO molecule and the NO<sub>2</sub> molecule, then launch. Try at least 6 different positions.</li><li>Look at your table. Which atoms touched every time a reaction happened?</li><li>Write a rule: how must the particles be turned when they collide?</li></ol>',
+    rule:'Rule 3: Particles must collide in the correct orientation. Here the C atom of CO must touch an O atom of NO₂.'},
+ 4:{title:'All together',body:'<ol><li>Now many molecules move freely, and the counters show why collisions fail.</li><li>Set the temperature to 2, then to 9. How does the number of reactions change?</li><li>Raise the energy needed to react. What happens to the reaction rate?</li><li>Do all collisions lead to a reaction? Use the three rules to explain.</li></ol>',
+    rule:'Collision theory: particles must (1) collide, (2) in the correct orientation, (3) with enough energy to form the activated complex. Higher temperature gives more energetic collisions, so the reaction is faster. A higher activation energy makes it slower.'}};
+function setMission(n){mission=n;const m=M[n];
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.m==n));
+  $('mTitle').textContent=m.title;$('mBody').innerHTML=m.body;$('ruleTxt').hidden=true;$('ruleTxt').textContent=m.rule;$('ruleBtn').hidden=false;$('msg').textContent='';
+  mode=(n===1||n===4)?'box':'launch';
+  $('boxControls').hidden=mode!=='box';$('stats').hidden=mode!=='box';$('launchControls').hidden=mode!=='launch';$('logwrap').hidden=mode!=='launch';
+  flashes=[];
+  if(mode==='box'){barrier=n===1;$('barrierBtn').hidden=n!==1;$('barrierBtn').disabled=false;$('tempCtl').hidden=n!==4;$('eaCtl').hidden=n!==4;$('stE').hidden=n!==4;$('stO').hidden=n!==4;
+    T=n===1?8:+$('temp').value;Ea=n===1?22:+$('ea').value;paused=false;$('pauseBtn').textContent='Pause';resetBox();}
+  else{$('log').innerHTML='';L.tries=0;$('eFill').style.width='0%';$('eMark').style.left=LEa+'%';$('fireBtn').textContent='Launch';$('fireBtn').disabled=false;
+    const lockO=n===2,lockS=n===3;
+    if(lockO){$('coA').value=0;$('noA').value=120;} if(lockS){$('spd').value=9;}else if(n===2){$('spd').value=1;}
+    $('coA').disabled=lockO;$('noA').disabled=lockO;$('spd').disabled=lockS;$('spdTxt').textContent=$('spd').value;resetLaunch();}
+  try{history.replaceState(null,'','#mission'+n);}catch(e){}
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.addEventListener('click',()=>setMission(+b.dataset.m)));
+$('ruleBtn').addEventListener('click',()=>{$('ruleTxt').hidden=false;$('ruleBtn').hidden=true;});
+$('barrierBtn').addEventListener('click',()=>{barrier=false;$('barrierBtn').disabled=true;$('msg').textContent='Barrier removed.';});
+$('pauseBtn').addEventListener('click',()=>{paused=!paused;$('pauseBtn').textContent=paused?'Play':'Pause';});
+$('resetBtn').addEventListener('click',()=>setMission(mission));
+const tw=['very cold','cold','cold','cool','medium','medium','warm','hot','hot','very hot'];
+$('temp').addEventListener('input',e=>{const nt=+e.target.value,k=speedFor(nt)/speedFor(T);mols.forEach(m=>{m.vx*=k;m.vy*=k;});T=nt;$('tempTxt').textContent=tw[nt-1];});
+$('ea').addEventListener('input',e=>{Ea=+e.target.value;$('eaTxt').textContent=Ea<25?'low barrier':Ea<45?'medium barrier':'high barrier';});
+$('spd').addEventListener('input',e=>{$('spdTxt').textContent=e.target.value;});
+['coA','noA'].forEach(id=>$(id).addEventListener('input',()=>{if(L.phase==='idle'||L.phase==='done'){resetLaunch();$('fireBtn').disabled=false;}}));
+$('fireBtn').addEventListener('click',fire);
+let start=1;const h=(location.hash||'').match(/mission([1-4])/);if(h)start=+h[1];
+setMission(start);
+if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('pauseBtn').textContent='Play';}
+frame();
+})();
+</script>
+</body></html>
