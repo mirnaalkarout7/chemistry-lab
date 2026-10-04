@@ -1,1 +1,1 @@
-# collision-lab
+# chemistry-lab
